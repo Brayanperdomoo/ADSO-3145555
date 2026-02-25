@@ -75,3 +75,22 @@ Relaciones:
 •	Cada pedido pertenece a un usuario.
 •	Un pedido puede tener varios productos.
 •	La relación entre pedidos y productos se maneja con DetallePedido.
+________________________________________________________________________________
+
+Link de trabajo en grupo de Scrum, Design Thinking y MoSCoW. 
+
+https://gamma.app/docs/Scrum-Design-Thinking-y-MoSCoW-03yx9kud5ixbhik
+
+________________________________________________________________________________
+Link de trabajo en grupo de De Design Thinking + MoSCoW + Scrum al MVP
+Carrito de compras — Cafetín SENA (Industria)
+
+https://gamma.app/docs/De-Design-Thinking-MoSCoW-Scrum-al-MVP-9kgxi56kzarrn12
+
+
+
+
+
+
+
+
