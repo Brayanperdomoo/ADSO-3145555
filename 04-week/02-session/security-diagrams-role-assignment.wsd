@@ -1,0 +1,135 @@
+@startuml Role Assignment Sequence
+actor Administrador
+participant "Frontend" as FE
+participant "User Controller" as UC
+participant "User Service" as US
+participant "Permission Service" as PS
+participant "Database" as DB
+
+Administrador -> FE: Selecciona usuario y roles
+FE -> UC: POST /users/{userId}/roles\n{ roleIds: [...] }
+
+UC -> PS: checkPermission(adminId, "manage_users")
+PS --> UC: Permission granted
+
+UC -> US: assignRoles(userId, roleIds)
+
+loop Para cada roleId
+  US -> DB: INSERT INTO user_role\n(id, user_id, role_id, created_at, created_by, status)\nVALUES (?, ?, ?, NOW(), ?, 'active')
+  DB --> US: Success
+end
+
+US -> DB: SELECT r.* FROM role r\nJOIN user_role ur ON r.id = ur.role_id\nWHERE ur.user_id = ?\nAND ur.deleted_at IS NULL
+DB --> US: updatedRoles[]
+
+US --> UC: Success { roles }
+UC --> FE: 200 OK { roles }
+FE --> Administrador: Roles asignados exitosamente
+
+@enduml
+
+@startuml Permission Check Flow
+start
+
+:Usuario solicita acceso a recurso;
+
+:Sistema extrae token JWT;
+
+if (Token válido?) then (no)
+  :Retornar 401 Unauthorized;
+  stop
+else (sí)
+  :Extraer userId del token;
+endif
+
+:Obtener ruta del recurso solicitado;
+
+:Consultar permisos en BD:
+**user → user_role → role → 
+role_module → module → 
+module_view → view**;
+
+if (¿Existe permiso activo?) then (sí)
+  if (¿Estado = 'active'?) then (sí)
+    if (¿deleted_at IS NULL?) then (sí)
+      :Permitir acceso;
+      :Procesar solicitud;
+      :Retornar 200 OK;
+      stop
+    else (no)
+      :Retornar 403 Forbidden;
+      stop
+    endif
+  else (no)
+    :Retornar 403 Forbidden;
+    stop
+  endif
+else (no)
+  :Retornar 403 Forbidden;
+  stop
+endif
+
+@enduml
+
+@startuml Module Hierarchy
+package "Coffee Shop System" {
+  
+  [Security Module] as SEC
+  [Parameter Module] as PAR
+  [Inventory Module] as INV
+  [Sales Module] as SAL
+  [Billing Module] as BIL
+  
+  package "Security Views" {
+    [User Management] as SEC_USER
+    [Role Management] as SEC_ROLE
+    [Module Management] as SEC_MOD
+    [Permission Assignment] as SEC_PERM
+  }
+  
+  package "Inventory Views" {
+    [Product List] as INV_PROD
+    [Category Management] as INV_CAT
+    [Supplier Management] as INV_SUP
+    [Inventory Control] as INV_CTRL
+  }
+  
+  package "Sales Views" {
+    [Customer List] as SAL_CUST
+    [Order Management] as SAL_ORD
+    [Order Items] as SAL_ITEM
+  }
+  
+  SEC --> SEC_USER
+  SEC --> SEC_ROLE
+  SEC --> SEC_MOD
+  SEC --> SEC_PERM
+  
+  INV --> INV_PROD
+  INV --> INV_CAT
+  INV --> INV_SUP
+  INV --> INV_CTRL
+  
+  SAL --> SAL_CUST
+  SAL --> SAL_ORD
+  SAL --> SAL_ITEM
+  
+  note right of SEC
+    **Role: Administrator**
+    - Full access to all modules
+    
+    **Role: Manager**
+    - Inventory: Read, Write
+    - Sales: Read, Write
+    - Billing: Read
+    
+    **Role: Cashier**
+    - Sales: Read, Write
+    - Billing: Read, Write
+    
+    **Role: Warehouse Staff**
+    - Inventory: Read, Write
+  end note
+}
+
+@enduml

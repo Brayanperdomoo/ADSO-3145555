@@ -1,0 +1,38 @@
+@startuml Security Use Cases
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrador" as Admin
+actor "Usuario" as User
+
+rectangle "Módulo de Seguridad" {
+  usecase "Gestionar Usuarios" as UC1
+  usecase "Gestionar Roles" as UC2
+  usecase "Asignar Roles a Usuarios" as UC3
+  usecase "Gestionar Módulos" as UC4
+  usecase "Gestionar Vistas" as UC5
+  usecase "Asignar Módulos a Roles" as UC6
+  usecase "Asignar Vistas a Módulos" as UC7
+  usecase "Iniciar Sesión" as UC8
+  usecase "Verificar Permisos" as UC9
+  usecase "Acceder a Recursos" as UC10
+}
+
+
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+
+User --> UC8
+User --> UC10
+
+UC8 ..> UC9 : <<include>>
+UC10 ..> UC9 : <<include>>
+UC3 ..> UC1 : <<include>>
+UC3 ..> UC2 : <<include>>
+UC6 ..> UC2 : <<include>>
+UC6 ..> UC4 : <<include>>
+UC7 ..> UC4 : <<include>>
+UC7 ..> UC5 : <<include>>
+
+@enduml

@@ -1,0 +1,90 @@
+@startuml Diagrama_Flujo_Carrito_Cafetin
+
+title Diagrama de Flujo - Sistema Carrito de Compras Cafetín SENA
+
+start
+
+:Cliente accede al sistema;
+
+label catalogo
+:Visualizar catálogo de productos\n(RF1 - Ver productos);
+
+note right
+  RN1: Solo productos disponibles
+end note
+
+if (¿Desea agregar producto?) then (Sí)
+  
+  :Seleccionar producto;
+  
+  :Ingresar cantidad;
+  
+  if (¿Cantidad >= 1?) then (Sí)
+    note right
+      RN2: Cantidad mínima = 1
+    end note
+    
+    :Agregar producto al carrito\n(RF2 - Agregar al carrito);
+    
+  else (No)
+    :Mostrar error:\n"Cantidad mínima es 1";
+    goto catalogo
+  endif
+  
+  :Calcular total automático\n(RF4 - Calcular total);
+  
+  label gestion_carrito
+  if (¿Desea gestionar el carrito?) then (Sí)
+    
+    if (¿Qué acción desea realizar?) then (Modificar cantidad)
+      :Actualizar cantidad en carrito\n(RF3 - Modificar cantidad);
+      goto gestion_carrito
+      
+    elseif (Eliminar producto)
+      :Remover producto del carrito;
+      goto gestion_carrito
+      
+    else (Agregar más productos)
+      goto catalogo
+    endif
+    
+  else (No - Continuar)
+  endif
+  
+else (No)
+  stop
+endif
+
+:Mostrar resumen del pedido;
+
+if (¿Confirmar pedido?) then (Sí)
+  note right
+    RN3: Confirmación obligatoria
+  end note
+  
+  :Registrar pedido en BD\n(Almacenamiento básico);
+  
+  note right
+    RNF2: Datos seguros
+    RNF3: Respuesta < 3 seg
+  end note
+  
+  :Generar confirmación del pedido;
+  
+  :Mostrar pedido confirmado\n(RF5 - Ver pedido);
+  
+  :Notificar al cliente:\n"Pedido registrado exitosamente";
+  
+else (No)
+  :Cancelar operación;
+  
+  if (¿Volver al catálogo?) then (Sí)
+    goto catalogo
+  else (No)
+    stop
+  endif
+endif
+
+stop
+
+@enduml

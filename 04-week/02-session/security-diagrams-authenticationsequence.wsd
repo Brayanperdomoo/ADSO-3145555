@@ -1,0 +1,32 @@
+@startuml Authentication Sequence
+actor Usuario
+participant "Frontend" as FE
+participant "Auth Controller" as Auth
+participant "User Service" as US
+participant "Database" as DB
+participant "JWT Service" as JWT
+
+Usuario -> FE: Ingresa credenciales
+FE -> Auth: POST /login {username, password}
+Auth -> US: validateCredentials(username, password)
+US -> DB: SELECT * FROM user WHERE username = ?
+DB --> US: userData
+US -> US: verifyPassword(password, hashedPassword)
+US --> Auth: userValidated
+
+Auth -> DB: SELECT r.* FROM role r\nJOIN user_role ur ON r.id = ur.role_id\nWHERE ur.user_id = ?
+DB --> Auth: userRoles[]
+
+Auth -> DB: SELECT m.* FROM module m\nJOIN role_module rm ON m.id = rm.module_id\nWHERE rm.role_id IN (?)
+DB --> Auth: userModules[]
+
+Auth -> DB: SELECT v.* FROM view v\nJOIN module_view mv ON v.id = mv.view_id\nWHERE mv.module_id IN (?)
+DB --> Auth: userViews[]
+
+Auth -> JWT: generateToken(user, roles, modules, views)
+JWT --> Auth: accessToken
+
+Auth --> FE: { token, user, permissions }
+FE --> Usuario: Autenticación exitosa
+
+@enduml

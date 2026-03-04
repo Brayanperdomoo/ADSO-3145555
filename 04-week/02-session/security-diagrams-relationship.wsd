@@ -1,0 +1,119 @@
+@startuml Security Entity Relationship
+entity "user" as user {
+  * id : UUID <<PK>>
+  --
+  username : VARCHAR
+  email : VARCHAR
+  password : VARCHAR
+  * person_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "role" as role {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "module" as module {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+  icon : VARCHAR
+  route : VARCHAR
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "view" as view {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+  route : VARCHAR
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "user_role" as user_role {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * role_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "role_module" as role_module {
+  * id : UUID <<PK>>
+  --
+  * role_id : UUID <<FK>>
+  * module_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "module_view" as module_view {
+  * id : UUID <<PK>>
+  --
+  * module_id : UUID <<FK>>
+  * view_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+user ||--o{ user_role
+role ||--o{ user_role
+role ||--o{ role_module
+module ||--o{ role_module
+module ||--o{ module_view
+view ||--o{ module_view
+
+@enduml

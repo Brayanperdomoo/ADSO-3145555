@@ -1,0 +1,42 @@
+@startuml Permission Check Flow
+start
+
+:Usuario solicita acceso a recurso;
+
+:Sistema extrae token JWT;
+
+if (Token válido?) then (no)
+  :Retornar 401 Unauthorized;
+  stop
+else (sí)
+  :Extraer userId del token;
+endif
+
+:Obtener ruta del recurso solicitado;
+
+:Consultar permisos en BD:
+**user → user_role → role → 
+role_module → module → 
+module_view → view**;
+
+if (¿Existe permiso activo?) then (sí)
+  if (¿Estado = 'active'?) then (sí)
+    if (¿deleted_at IS NULL?) then (sí)
+      :Permitir acceso;
+      :Procesar solicitud;
+      :Retornar 200 OK;
+      stop
+    else (no)
+      :Retornar 403 Forbidden;
+      stop
+    endif
+  else (no)
+    :Retornar 403 Forbidden;
+    stop
+  endif
+else (no)
+  :Retornar 403 Forbidden;
+  stop
+endif
+
+@enduml

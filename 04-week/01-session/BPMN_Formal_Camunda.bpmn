@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   id="Definitions_1"
+                   targetNamespace="http://bpmn.io/schema/bpmn">
+  
+  <bpmn:collaboration id="Collaboration_Cafetin">
+    <bpmn:participant id="Participant_Cliente" name="Cliente" processRef="Process_Cliente" />
+    <bpmn:participant id="Participant_Sistema" name="Sistema de Pedidos" processRef="Process_Sistema" />
+    <bpmn:participant id="Participant_Personal" name="Personal del Cafetín" processRef="Process_Personal" />
+    <bpmn:messageFlow id="Flow_Msg1" sourceRef="Task_Cliente_Ingresar" targetRef="StartEvent_Sistema" />
+    <bpmn:messageFlow id="Flow_Msg2" sourceRef="Task_Sistema_Presentar" targetRef="Task_Cliente_Explorar" />
+    <bpmn:messageFlow id="Flow_Msg3" sourceRef="Task_Cliente_Seleccionar" targetRef="Task_Sistema_Validar" />
+    <bpmn:messageFlow id="Flow_Msg4" sourceRef="Task_Cliente_Confirmar" targetRef="Task_Sistema_Registrar" />
+    <bpmn:messageFlow id="Flow_Msg5" sourceRef="Task_Sistema_Generar" targetRef="Task_Cliente_Recibir" />
+    <bpmn:messageFlow id="Flow_Msg6" sourceRef="Task_Sistema_Guardar" targetRef="StartEvent_Personal" />
+  </bpmn:collaboration>
+  
+  <bpmn:process id="Process_Cliente" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_Cliente">
+      <bpmn:lane id="Lane_Cliente_Solicitud" name="Solicitud de Pedido">
+        <bpmn:flowNodeRef>StartEvent_Cliente</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Ingresar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Explorar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Seleccionar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Cliente_Modificar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Modificar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Cliente_Eliminar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Eliminar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Cliente_AgregarMas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Revisar</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Cliente_Confirmacion" name="Confirmación">
+        <bpmn:flowNodeRef>Gateway_Cliente_Confirmar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Confirmar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Recibir</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cliente_Guardar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Cliente</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    
+    <bpmn:startEvent id="StartEvent_Cliente" name="Necesidad de pedido">
+      <bpmn:outgoing>Flow_C1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_Cliente_Ingresar" name="Ingresar al sistema">
+      <bpmn:incoming>Flow_C1</bpmn:incoming>
+      <bpmn:outgoing>Flow_C2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_Cliente_Explorar" name="Explorar catálogo">
+      <bpmn:incoming>Flow_C2</bpmn:incoming>
+      <bpmn:outgoing>Flow_C3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_Cliente_Seleccionar" name="Seleccionar producto y cantidad">
+      <bpmn:incoming>Flow_C3</bpmn:incoming>
+      <bpmn:incoming>Flow_C_AgregarMas_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_C4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Modificar" name="¿Modificar cantidad?">
+      <bpmn:incoming>Flow_C4</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Modificar_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_C_Modificar_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_Cliente_Modificar" name="Modificar cantidad">
+      <bpmn:incoming>Flow_C_Modificar_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_C5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Eliminar" name="¿Eliminar producto?">
+      <bpmn:incoming>Flow_C_Modificar_No</bpmn:incoming>
+      <bpmn:incoming>Flow_C5</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Eliminar_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_C_Eliminar_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_Cliente_Eliminar" name="Eliminar producto">
+      <bpmn:incoming>Flow_C_Eliminar_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_C6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Cliente_AgregarMas" name="¿Agregar más productos?">
+      <bpmn:incoming>Flow_C_Eliminar_No</bpmn:incoming>
+      <bpmn:incoming>Flow_C6</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_AgregarMas_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_C_AgregarMas_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_Cliente_Revisar" name="Revisar resumen del pedido">
+      <bpmn:incoming>Flow_C_AgregarMas_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_C7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Confirmar" name="¿Confirmar pedido?">
+      <bpmn:incoming>Flow_C7</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Confirmar_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_C_Confirmar_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_Cliente_Confirmar" name="Confirmar pedido">
+      <bpmn:incoming>Flow_C_Confirmar_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_C8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="Task_Cliente_Recibir" name="Recibir confirmación">
+      <bpmn:incoming>Flow_C8</bpmn:incoming>
+      <bpmn:outgoing>Flow_C9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_Cliente_Guardar" name="Guardar número de pedido">
+      <bpmn:incoming>Flow_C9</bpmn:incoming>
+      <bpmn:outgoing>Flow_C10</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_Cliente" name="Pedido completado">
+      <bpmn:incoming>Flow_C10</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_C1" sourceRef="StartEvent_Cliente" targetRef="Task_Cliente_Ingresar" />
+    <bpmn:sequenceFlow id="Flow_C2" sourceRef="Task_Cliente_Ingresar" targetRef="Task_Cliente_Explorar" />
+    <bpmn:sequenceFlow id="Flow_C3" sourceRef="Task_Cliente_Explorar" targetRef="Task_Cliente_Seleccionar" />
+    <bpmn:sequenceFlow id="Flow_C4" sourceRef="Task_Cliente_Seleccionar" targetRef="Gateway_Cliente_Modificar" />
+    <bpmn:sequenceFlow id="Flow_C_Modificar_Si" name="Sí" sourceRef="Gateway_Cliente_Modificar" targetRef="Task_Cliente_Modificar" />
+    <bpmn:sequenceFlow id="Flow_C_Modificar_No" name="No" sourceRef="Gateway_Cliente_Modificar" targetRef="Gateway_Cliente_Eliminar" />
+    <bpmn:sequenceFlow id="Flow_C5" sourceRef="Task_Cliente_Modificar" targetRef="Gateway_Cliente_Eliminar" />
+    <bpmn:sequenceFlow id="Flow_C_Eliminar_Si" name="Sí" sourceRef="Gateway_Cliente_Eliminar" targetRef="Task_Cliente_Eliminar" />
+    <bpmn:sequenceFlow id="Flow_C_Eliminar_No" name="No" sourceRef="Gateway_Cliente_Eliminar" targetRef="Gateway_Cliente_AgregarMas" />
+    <bpmn:sequenceFlow id="Flow_C6" sourceRef="Task_Cliente_Eliminar" targetRef="Gateway_Cliente_AgregarMas" />
+    <bpmn:sequenceFlow id="Flow_C_AgregarMas_Si" name="Sí" sourceRef="Gateway_Cliente_AgregarMas" targetRef="Task_Cliente_Seleccionar" />
+    <bpmn:sequenceFlow id="Flow_C_AgregarMas_No" name="No" sourceRef="Gateway_Cliente_AgregarMas" targetRef="Task_Cliente_Revisar" />
+    <bpmn:sequenceFlow id="Flow_C7" sourceRef="Task_Cliente_Revisar" targetRef="Gateway_Cliente_Confirmar" />
+    <bpmn:sequenceFlow id="Flow_C_Confirmar_Si" name="Sí" sourceRef="Gateway_Cliente_Confirmar" targetRef="Task_Cliente_Confirmar" />
+    <bpmn:sequenceFlow id="Flow_C_Confirmar_No" name="No" sourceRef="Gateway_Cliente_Confirmar" targetRef="Task_Cliente_Seleccionar" />
+    <bpmn:sequenceFlow id="Flow_C8" sourceRef="Task_Cliente_Confirmar" targetRef="Task_Cliente_Recibir" />
+    <bpmn:sequenceFlow id="Flow_C9" sourceRef="Task_Cliente_Recibir" targetRef="Task_Cliente_Guardar" />
+    <bpmn:sequenceFlow id="Flow_C10" sourceRef="Task_Cliente_Guardar" targetRef="EndEvent_Cliente" />
+  </bpmn:process>
+  
+  <bpmn:process id="Process_Sistema" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Sistema" name="Solicitud">
+      <bpmn:outgoing>Flow_S1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_Sistema_Presentar" name="Presentar catálogo">
+      <bpmn:documentation>RN1: Solo productos disponibles</bpmn:documentation>
+      <bpmn:incoming>Flow_S1</bpmn:incoming>
+      <bpmn:outgoing>Flow_S2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:businessRuleTask id="Task_Sistema_Validar" name="Validar cantidad">
+      <bpmn:documentation>RN2: Cantidad mínima = 1</bpmn:documentation>
+      <bpmn:incoming>Flow_S2</bpmn:incoming>
+      <bpmn:outgoing>Flow_S3</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    <bpmn:serviceTask id="Task_Sistema_Agregar" name="Agregar al carrito">
+      <bpmn:incoming>Flow_S3</bpmn:incoming>
+      <bpmn:outgoing>Flow_S4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:scriptTask id="Task_Sistema_Calcular" name="Calcular total">
+      <bpmn:incoming>Flow_S4</bpmn:incoming>
+      <bpmn:outgoing>Flow_S5</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:userTask id="Task_Sistema_Detalle" name="Mostrar detalle">
+      <bpmn:incoming>Flow_S5</bpmn:incoming>
+      <bpmn:outgoing>Flow_S6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Sistema_Registrar" name="Registrar pedido">
+      <bpmn:documentation>RN3: Confirmación obligatoria</bpmn:documentation>
+      <bpmn:incoming>Flow_S6</bpmn:incoming>
+      <bpmn:outgoing>Flow_S7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Sistema_Generar" name="Generar número">
+      <bpmn:incoming>Flow_S7</bpmn:incoming>
+      <bpmn:outgoing>Flow_S8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Sistema_Inventario" name="Actualizar inventario">
+      <bpmn:incoming>Flow_S8</bpmn:incoming>
+      <bpmn:outgoing>Flow_S9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Sistema_Guardar" name="Guardar pedido">
+      <bpmn:incoming>Flow_S9</bpmn:incoming>
+      <bpmn:outgoing>Flow_S10</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Sistema" name="Procesado">
+      <bpmn:incoming>Flow_S10</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_S1" sourceRef="StartEvent_Sistema" targetRef="Task_Sistema_Presentar" />
+    <bpmn:sequenceFlow id="Flow_S2" sourceRef="Task_Sistema_Presentar" targetRef="Task_Sistema_Validar" />
+    <bpmn:sequenceFlow id="Flow_S3" sourceRef="Task_Sistema_Validar" targetRef="Task_Sistema_Agregar" />
+    <bpmn:sequenceFlow id="Flow_S4" sourceRef="Task_Sistema_Agregar" targetRef="Task_Sistema_Calcular" />
+    <bpmn:sequenceFlow id="Flow_S5" sourceRef="Task_Sistema_Calcular" targetRef="Task_Sistema_Detalle" />
+    <bpmn:sequenceFlow id="Flow_S6" sourceRef="Task_Sistema_Detalle" targetRef="Task_Sistema_Registrar" />
+    <bpmn:sequenceFlow id="Flow_S7" sourceRef="Task_Sistema_Registrar" targetRef="Task_Sistema_Generar" />
+    <bpmn:sequenceFlow id="Flow_S8" sourceRef="Task_Sistema_Generar" targetRef="Task_Sistema_Inventario" />
+    <bpmn:sequenceFlow id="Flow_S9" sourceRef="Task_Sistema_Inventario" targetRef="Task_Sistema_Guardar" />
+    <bpmn:sequenceFlow id="Flow_S10" sourceRef="Task_Sistema_Guardar" targetRef="EndEvent_Sistema" />
+  </bpmn:process>
+  
+  <bpmn:process id="Process_Personal" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Personal" name="Pedido recibido">
+      <bpmn:outgoing>Flow_P1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_Personal_Recibir" name="Recibir notificación">
+      <bpmn:incoming>Flow_P1</bpmn:incoming>
+      <bpmn:outgoing>Flow_P2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_Personal_Preparar" name="Preparar pedido">
+      <bpmn:incoming>Flow_P2</bpmn:incoming>
+      <bpmn:outgoing>Flow_P3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_Personal_Entregar" name="Entregar al cliente">
+      <bpmn:incoming>Flow_P3</bpmn:incoming>
+      <bpmn:outgoing>Flow_P4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_Personal" name="Completado">
+      <bpmn:incoming>Flow_P4</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_P1" sourceRef="StartEvent_Personal" targetRef="Task_Personal_Recibir" />
+    <bpmn:sequenceFlow id="Flow_P2" sourceRef="Task_Personal_Recibir" targetRef="Task_Personal_Preparar" />
+    <bpmn:sequenceFlow id="Flow_P3" sourceRef="Task_Personal_Preparar" targetRef="Task_Personal_Entregar" />
+    <bpmn:sequenceFlow id="Flow_P4" sourceRef="Task_Personal_Entregar" targetRef="EndEvent_Personal" />
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_Cafetin">
+      <bpmndi:BPMNShape id="Participant_Cliente_di" bpmnElement="Participant_Cliente" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2000" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Sistema_di" bpmnElement="Participant_Sistema" isHorizontal="true">
+        <dc:Bounds x="160" y="520" width="2000" height="300" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Personal_di" bpmnElement="Participant_Personal" isHorizontal="true">
+        <dc:Bounds x="160" y="860" width="2000" height="250" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  
+</bpmn:definitions>

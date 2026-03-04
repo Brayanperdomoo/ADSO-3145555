@@ -1,0 +1,364 @@
+@startuml Security Use Cases
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrador" as Admin
+actor "Usuario" as User
+
+rectangle "Módulo de Seguridad" {
+  usecase "Gestionar Usuarios" as UC1
+  usecase "Gestionar Roles" as UC2
+  usecase "Asignar Roles a Usuarios" as UC3
+  usecase "Gestionar Módulos" as UC4
+  usecase "Gestionar Vistas" as UC5
+  usecase "Asignar Módulos a Roles" as UC6
+  usecase "Asignar Vistas a Módulos" as UC7
+  usecase "Iniciar Sesión" as UC8
+  usecase "Verificar Permisos" as UC9
+  usecase "Acceder a Recursos" as UC10
+}
+
+
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+
+User --> UC8
+User --> UC10
+
+UC8 ..> UC9 : <<include>>
+UC10 ..> UC9 : <<include>>
+UC3 ..> UC1 : <<include>>
+UC3 ..> UC2 : <<include>>
+UC6 ..> UC2 : <<include>>
+UC6 ..> UC4 : <<include>>
+UC7 ..> UC4 : <<include>>
+UC7 ..> UC5 : <<include>>
+
+@enduml
+
+@startuml Security Entity Relationship
+entity "user" as user {
+  * id : UUID <<PK>>
+  --
+  username : VARCHAR
+  email : VARCHAR
+  password : VARCHAR
+  * person_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "role" as role {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "module" as module {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+  icon : VARCHAR
+  route : VARCHAR
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "view" as view {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+  route : VARCHAR
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "user_role" as user_role {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * role_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "role_module" as role_module {
+  * id : UUID <<PK>>
+  --
+  * role_id : UUID <<FK>>
+  * module_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+entity "module_view" as module_view {
+  * id : UUID <<PK>>
+  --
+  * module_id : UUID <<FK>>
+  * view_id : UUID <<FK>>
+  --
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+  deleted_at : TIMESTAMPTZ
+  created_by : UUID
+  updated_by : UUID
+  deleted_by : UUID
+  status : VARCHAR
+}
+
+user ||--o{ user_role
+role ||--o{ user_role
+role ||--o{ role_module
+module ||--o{ role_module
+module ||--o{ module_view
+view ||--o{ module_view
+
+@enduml
+
+@startuml Authentication Sequence
+actor Usuario
+participant "Frontend" as FE
+participant "Auth Controller" as Auth
+participant "User Service" as US
+participant "Database" as DB
+participant "JWT Service" as JWT
+
+Usuario -> FE: Ingresa credenciales
+FE -> Auth: POST /login {username, password}
+Auth -> US: validateCredentials(username, password)
+US -> DB: SELECT * FROM user WHERE username = ?
+DB --> US: userData
+US -> US: verifyPassword(password, hashedPassword)
+US --> Auth: userValidated
+
+Auth -> DB: SELECT r.* FROM role r\nJOIN user_role ur ON r.id = ur.role_id\nWHERE ur.user_id = ?
+DB --> Auth: userRoles[]
+
+Auth -> DB: SELECT m.* FROM module m\nJOIN role_module rm ON m.id = rm.module_id\nWHERE rm.role_id IN (?)
+DB --> Auth: userModules[]
+
+Auth -> DB: SELECT v.* FROM view v\nJOIN module_view mv ON v.id = mv.view_id\nWHERE mv.module_id IN (?)
+DB --> Auth: userViews[]
+
+Auth -> JWT: generateToken(user, roles, modules, views)
+JWT --> Auth: accessToken
+
+Auth --> FE: { token, user, permissions }
+FE --> Usuario: Autenticación exitosa
+
+@enduml
+
+@startuml Authorization Sequence
+actor Usuario
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Auth Middleware" as MW
+participant "Module Controller" as MC
+participant "Permission Service" as PS
+participant "Database" as DB
+
+Usuario -> FE: Intenta acceder a vista\n/inventory/products
+FE -> GW: GET /inventory/products\nAuthorization: Bearer <token>
+
+GW -> MW: validateToken(token)
+MW -> MW: verifyJWT(token)
+MW -> MW: extractUserData(token)
+
+MW -> PS: checkPermission(userId, "/inventory/products")
+PS -> DB: SELECT 1 FROM user_role ur\nJOIN role_module rm ON ur.role_id = rm.role_id\nJOIN module_view mv ON rm.module_id = mv.module_id\nJOIN view v ON mv.view_id = v.id\nWHERE ur.user_id = ?\nAND v.route = ?\nAND ur.deleted_at IS NULL
+
+alt Usuario tiene permiso
+  DB --> PS: Record found
+  PS --> MW: Permission granted
+  MW -> MC: Forward request
+  MC --> MW: Response data
+  MW --> GW: Response data
+  GW --> FE: 200 OK { data }
+  FE --> Usuario: Muestra contenido
+else Usuario sin permiso
+  DB --> PS: No record found
+  PS --> MW: Permission denied
+  MW --> GW: 403 Forbidden
+  GW --> FE: 403 Forbidden
+  FE --> Usuario: Acceso denegado
+end
+
+@enduml
+
+@startuml Role Assignment Sequence
+actor Administrador
+participant "Frontend" as FE
+participant "User Controller" as UC
+participant "User Service" as US
+participant "Permission Service" as PS
+participant "Database" as DB
+
+Administrador -> FE: Selecciona usuario y roles
+FE -> UC: POST /users/{userId}/roles\n{ roleIds: [...] }
+
+UC -> PS: checkPermission(adminId, "manage_users")
+PS --> UC: Permission granted
+
+UC -> US: assignRoles(userId, roleIds)
+
+loop Para cada roleId
+  US -> DB: INSERT INTO user_role\n(id, user_id, role_id, created_at, created_by, status)\nVALUES (?, ?, ?, NOW(), ?, 'active')
+  DB --> US: Success
+end
+
+US -> DB: SELECT r.* FROM role r\nJOIN user_role ur ON r.id = ur.role_id\nWHERE ur.user_id = ?\nAND ur.deleted_at IS NULL
+DB --> US: updatedRoles[]
+
+US --> UC: Success { roles }
+UC --> FE: 200 OK { roles }
+FE --> Administrador: Roles asignados exitosamente
+
+@enduml
+
+@startuml Permission Check Flow
+start
+
+:Usuario solicita acceso a recurso;
+
+:Sistema extrae token JWT;
+
+if (Token válido?) then (no)
+  :Retornar 401 Unauthorized;
+  stop
+else (sí)
+  :Extraer userId del token;
+endif
+
+:Obtener ruta del recurso solicitado;
+
+:Consultar permisos en BD:
+**user → user_role → role → 
+role_module → module → 
+module_view → view**;
+
+if (¿Existe permiso activo?) then (sí)
+  if (¿Estado = 'active'?) then (sí)
+    if (¿deleted_at IS NULL?) then (sí)
+      :Permitir acceso;
+      :Procesar solicitud;
+      :Retornar 200 OK;
+      stop
+    else (no)
+      :Retornar 403 Forbidden;
+      stop
+    endif
+  else (no)
+    :Retornar 403 Forbidden;
+    stop
+  endif
+else (no)
+  :Retornar 403 Forbidden;
+  stop
+endif
+
+@enduml
+
+@startuml Module Hierarchy
+package "Coffee Shop System" {
+  
+  [Security Module] as SEC
+  [Parameter Module] as PAR
+  [Inventory Module] as INV
+  [Sales Module] as SAL
+  [Billing Module] as BIL
+  
+  package "Security Views" {
+    [User Management] as SEC_USER
+    [Role Management] as SEC_ROLE
+    [Module Management] as SEC_MOD
+    [Permission Assignment] as SEC_PERM
+  }
+  
+  package "Inventory Views" {
+    [Product List] as INV_PROD
+    [Category Management] as INV_CAT
+    [Supplier Management] as INV_SUP
+    [Inventory Control] as INV_CTRL
+  }
+  
+  package "Sales Views" {
+    [Customer List] as SAL_CUST
+    [Order Management] as SAL_ORD
+    [Order Items] as SAL_ITEM
+  }
+  
+  SEC --> SEC_USER
+  SEC --> SEC_ROLE
+  SEC --> SEC_MOD
+  SEC --> SEC_PERM
+  
+  INV --> INV_PROD
+  INV --> INV_CAT
+  INV --> INV_SUP
+  INV --> INV_CTRL
+  
+  SAL --> SAL_CUST
+  SAL --> SAL_ORD
+  SAL --> SAL_ITEM
+  
+  note right of SEC
+    **Role: Administrator**
+    - Full access to all modules
+    
+    **Role: Manager**
+    - Inventory: Read, Write
+    - Sales: Read, Write
+    - Billing: Read
+    
+    **Role: Cashier**
+    - Sales: Read, Write
+    - Billing: Read, Write
+    
+    **Role: Warehouse Staff**
+    - Inventory: Read, Write
+  end note
+}
+
+@enduml

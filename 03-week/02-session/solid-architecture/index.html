@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POC IA - Arquitectura SOLID</title>
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <span class="badge">POC IA</span>
+        <h1>Arquitectura del Proyecto aplicando SOLID</h1>
+        <p>Implementación de arquitectura en capas con separación de responsabilidades, bajo acoplamiento y alta mantenibilidad.</p>
+    </div>
+</header>
+
+<!-- Estructura General -->
+<section>
+    <div class="container">
+        <h2 class="section-title">Estructura General del Proyecto</h2>
+        <p class="section-subtitle">Organización modular siguiendo principios de diseño limpio</p>
+
+        <div class="svg-container">
+            <object type="image/svg+xml" data="src/svg/structure.svg" width="100%">
+                Estructura del proyecto
+            </object>
+        </div>
+    </div>
+</section>
+
+<!-- Entity -->
+<section class="alt-bg">
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">1</span>
+            Entity - Modelo de Dominio
+        </h2>
+        <p class="section-subtitle">Representación del núcleo del negocio</p>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 9h18M9 21V9"/>
+                    </svg>
+                    Clases
+                </h3>
+                <div>
+                    <span class="tag tag-entity">Security</span>
+                    <span class="tag tag-entity">Bill</span>
+                    <span class="tag tag-entity">Inventory</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Responsabilidades
+                </h3>
+                <ul>
+                    <li>Representar entidades del negocio</li>
+                    <li>Definir propiedades del dominio</li>
+                    <li>Reglas simples del dominio (si aplica)</li>
+                    <li>Cero dependencias de infraestructura</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <strong>⚠️ Regla clave:</strong> No invocar repositorios/servicios desde Entity. No mezclar lógica de presentación ni persistencia.
+        </div>
+    </div>
+</section>
+
+<!-- DTO -->
+<section>
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">2</span>
+            DTO - Data Transfer Objects
+        </h2>
+        <p class="section-subtitle">Objetos de transferencia entre capas</p>
+
+        <div class="svg-container">
+            <object type="image/svg+xml" data="src/svg/dto-flow.svg" width="100%">
+                Flujo de DTOs
+            </object>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Responsabilidades</h3>
+                <ul>
+                    <li>Transportar datos entre capas</li>
+                    <li>Controlar exposición de datos</li>
+                    <li>Facilitar validaciones de entrada/salida</li>
+                    <li>Definir formatos de comunicación</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Buenas Prácticas</h3>
+                <ul>
+                    <li>Mantener DTOs simples (solo datos)</li>
+                    <li>Separar DTOs Request vs Response si el proyecto crece</li>
+                    <li>No incluir lógica de negocio</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- IRepository -->
+<section class="alt-bg">
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">3</span>
+            IRepository - Contratos de Acceso a Datos
+        </h2>
+        <p class="section-subtitle">Interfaces que definen operaciones de persistencia</p>
+
+        <div class="svg-container">
+            <object type="image/svg+xml" data="src/svg/repository.svg" width="100%">
+                Diagrama de Repository
+            </object>
+        </div>
+    </div>
+</section>
+
+<!-- IService -->
+<section>
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">4</span>
+            IService - Contratos de Lógica de Negocio
+        </h2>
+        <p class="section-subtitle">Interfaces que definen casos de uso del sistema</p>
+
+        <div class="grid-3">
+            <div class="card">
+                <h3>ISecurityService</h3>
+                <ul>
+                    <li>Autenticación</li>
+                    <li>Autorización</li>
+                    <li>Gestión de usuarios</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>IBillService</h3>
+                <ul>
+                    <li>Creación de facturas</li>
+                    <li>Cálculo de totales</li>
+                    <li>Validaciones fiscales</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>IInventoryService</h3>
+                <ul>
+                    <li>Control de stock</li>
+                    <li>Movimientos</li>
+                    <li>Alertas de inventario</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <strong>Propósito:</strong> Desacoplar Controllers de implementación concreta. Facilitar pruebas unitarias mediante mocks.
+        </div>
+    </div>
+</section>
+
+<!-- Service -->
+<section class="alt-bg">
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">5</span>
+            Service - Implementación de Lógica de Negocio
+        </h2>
+        <p class="section-subtitle">Donde vive la lógica "importante" del sistema</p>
+
+        <div class="svg-container">
+            <object type="image/svg+xml" data="src/svg/service-layer.svg" width="100%">
+                Service Layer
+            </object>
+        </div>
+    </div>
+</section>
+
+<!-- Controller -->
+<section>
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">6</span>
+            Controller - Capa de Presentación / API
+        </h2>
+        <p class="section-subtitle">Endpoints HTTP y orquestación de peticiones</p>
+
+        <div class="svg-container">
+            <object type="image/svg+xml" data="src/svg/controller.svg" width="100%">
+                Controller Layer
+            </object>
+        </div>
+    </div>
+</section>
+
+<!-- Utils -->
+<section class="alt-bg">
+    <div class="container">
+        <h2 class="section-title">
+            <span class="number">7</span>
+            Utils - Utilidades Comunes
+        </h2>
+        <p class="section-subtitle">Helpers y funciones transversales</p>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Contenido Típico</h3>
+                <ul>
+                    <li>Helpers (fechas, strings, formatos)</li>
+                    <li>Constantes y configuraciones</li>
+                    <li>Validadores reutilizables</li>
+                    <li>Mapeos sencillos</li>
+                </ul>
+            </div>
+            <div class="card warning">
+                <h3>⛔ Evitar</h3>
+                <ul>
+                    <li>Lógica de negocio principal</li>
+                    <li>Convertirlo en "cajón de sastre"</li>
+                    <li>Dependencias circulares</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Flujo de Request -->
+<section class="flow-section">
+    <div class="container">
+        <h2 class="section-title">Flujo Típico de una Solicitud</h2>
+        <p class="section-subtitle">Recorrido completo de una petición HTTP</p>
+
+        <div class="svg-container dark">
+            <object type="image/svg+xml" data="src/svg/request-flow.svg" width="100%">
+                Request Flow
+            </object>
+        </div>
+    </div>
+</section>
+
+<!-- SOLID -->
+<section>
+    <div class="container">
+        <h2 class="section-title">Principios SOLID Aplicados</h2>
+        <p class="section-subtitle">Cómo cada principio se manifiesta en la arquitectura</p>
+
+        <div class="solid-grid">
+            <div class="solid-item">
+                <div class="letter">S</div>
+                <div class="name">Single Responsibility</div>
+                <div class="desc">Cada capa hace una cosa: HTTP, negocio, datos</div>
+            </div>
+            <div class="solid-item">
+                <div class="letter">O</div>
+                <div class="name">Open/Closed</div>
+                <div class="desc">Extensible sin modificar código existente</div>
+            </div>
+            <div class="solid-item">
+                <div class="letter">L</div>
+                <div class="name">Liskov Substitution</div>
+                <div class="desc">Implementaciones intercambiables</div>
+            </div>
+            <div class="solid-item">
+                <div class="letter">I</div>
+                <div class="name">Interface Segregation</div>
+                <div class="desc">Interfaces separadas por entidad</div>
+            </div>
+            <div class="solid-item">
+                <div class="letter">D</div>
+                <div class="name">Dependency Inversion</div>
+                <div class="desc">Depender de abstracciones, no concreciones</div>
+            </div>
+        </div>
+
+        <div class="svg-container">
+            <object type="image/svg+xml" data="src/svg/dependency-inversion.svg" width="100%">
+                Dependency Inversion
+            </object>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p><strong>POC IA</strong> - Arquitectura en capas aplicando principios SOLID</p>
+        <p style="margin-top: 8px; font-size: 0.9rem;">Separación de responsabilidades • Bajo acoplamiento • Alta mantenibilidad</p>
+    </div>
+</footer>
+
+<script src="src/js/main.js"></script>
+</body>
+</html>

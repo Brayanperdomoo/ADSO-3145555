@@ -1,0 +1,28 @@
+@startuml Security Use Cases
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrador" as Admin
+actor "Aprendiz" as Aprendiz
+actor "Personal" as Personal
+
+rectangle "Sistema de Cafetin" {
+  usecase "Módulo de Seguridad" as UC1
+  usecase "Módulo de parametrización" as UC2
+  usecase "Módulo de Ventas" as UC3
+  usecase "Módulo de Inventario" as UC4
+  usecase "Módulo de Facturación" as UC5
+  usecase "Módulo de Reportes" as UC6
+}
+
+interface "Módulo de Seguridad" as SecurityModule
+
+Admin --> UC1
+Aprendiz --> UC3
+Aprendiz --> UC6
+Personal --> UC2
+Personal --> UC4
+Personal --> UC5
+Personal --> UC6
+
+@enduml

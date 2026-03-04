@@ -1,0 +1,227 @@
+@startuml BPMN_Tecnico_Carrito_Cafetin
+
+title BPMN Técnico - Sistema Carrito de Compras Cafetín SENA
+
+|#E8F5E9|Cliente|
+start
+:Acceder a la aplicación web;
+
+|#E3F2FD|Sistema Frontend|
+:Cargar interfaz principal;
+:Ejecutar GET /api/productos;
+
+|#FFF3E0|API Backend|
+:Consultar BD productos disponibles;
+note right
+  Query: SELECT * FROM productos 
+  WHERE disponible = true
+  AND stock > 0
+end note
+
+:Retornar JSON productos;
+
+|#E3F2FD|Sistema Frontend|
+:Renderizar catálogo
+**RF1 - Ver productos**;
+
+|#E8F5E9|Cliente|
+:Seleccionar producto;
+:Ingresar cantidad;
+
+|#E3F2FD|Sistema Frontend|
+if (Validar cantidad >= 1?) then (Sí)
+  note right: **RN2** - Cantidad mínima
+  
+  :Agregar a carrito local
+  (sessionStorage);
+  
+  :Ejecutar POST /api/carrito;
+  
+  |#FFF3E0|API Backend|
+  :Validar disponibilidad producto;
+  
+  if (Producto disponible?) then (Sí)
+    note right: **RN1** - Disponibilidad
+    
+    :Insertar/actualizar
+    en tabla carrito_temporal;
+    
+    note right
+      INSERT INTO carrito_temporal
+      (session_id, producto_id, 
+       cantidad, precio_unitario)
+    end note
+    
+    :Retornar 200 OK;
+    
+    |#E3F2FD|Sistema Frontend|
+    :Actualizar estado carrito;
+    :Recalcular totales
+    **RF4 - Calcular total**;
+    
+    note right
+      total = SUM(cantidad * precio)
+      RNF3: Tiempo < 3 seg
+    end note
+    
+  else (No)
+    :Retornar 409 Conflict;
+    
+    |#E3F2FD|Sistema Frontend|
+    :Mostrar error disponibilidad;
+    stop
+  endif
+  
+else (No)
+  :Mostrar error validación
+  "Cantidad mínima: 1";
+  stop
+endif
+
+|#E8F5E9|Cliente|
+if (¿Modificar cantidad?) then (Sí)
+  |#E3F2FD|Sistema Frontend|
+  :Ejecutar PUT /api/carrito/{id};
+  
+  |#FFF3E0|API Backend|
+  :Actualizar cantidad en BD;
+  note right
+    UPDATE carrito_temporal
+    SET cantidad = :nueva_cantidad
+    WHERE id = :carrito_id
+  end note
+  
+  :Retornar 200 OK;
+  
+  |#E3F2FD|Sistema Frontend|
+  :Actualizar vista carrito
+  **RF3 - Modificar cantidad**;
+  :Recalcular totales;
+endif
+
+|#E8F5E9|Cliente|
+if (¿Eliminar producto?) then (Sí)
+  |#E3F2FD|Sistema Frontend|
+  :Ejecutar DELETE /api/carrito/{id};
+  
+  |#FFF3E0|API Backend|
+  :Eliminar registro carrito;
+  note right
+    DELETE FROM carrito_temporal
+    WHERE id = :carrito_id
+  end note
+  
+  :Retornar 204 No Content;
+  
+  |#E3F2FD|Sistema Frontend|
+  :Actualizar vista carrito;
+  :Recalcular totales;
+endif
+
+|#E8F5E9|Cliente|
+if (¿Agregar más productos?) then (Sí)
+  :Continuar comprando;
+  detach
+endif
+
+:Revisar resumen del pedido;
+
+|#E3F2FD|Sistema Frontend|
+:Mostrar modal confirmación;
+:Renderizar detalle completo
+**RF5 - Ver pedido**;
+
+|#E8F5E9|Cliente|
+if (¿Confirmar pedido?) then (Sí)
+  note right: **RN3** - Confirmación obligatoria
+  
+  |#E3F2FD|Sistema Frontend|
+  :Ejecutar POST /api/pedidos;
+  
+  |#FFF3E0|API Backend|
+  :Iniciar transacción BD;
+  
+  :Insertar en tabla pedidos;
+  note right
+    INSERT INTO pedidos
+    (fecha, total, estado)
+    VALUES (NOW(), :total, 'CONFIRMADO')
+  end note
+  
+  :Insertar detalle_pedido;
+  note right
+    INSERT INTO detalle_pedido
+    (pedido_id, producto_id, 
+     cantidad, precio_unitario)
+    SELECT :pedido_id, producto_id,
+           cantidad, precio_unitario
+    FROM carrito_temporal
+    WHERE session_id = :session_id
+  end note
+  
+  :Actualizar stock productos;
+  note right
+    UPDATE productos
+    SET stock = stock - :cantidad
+    WHERE id IN (SELECT producto_id 
+                 FROM carrito_temporal)
+  end note
+  
+  :Limpiar carrito_temporal;
+  note right
+    DELETE FROM carrito_temporal
+    WHERE session_id = :session_id
+  end note
+  
+  :COMMIT transacción;
+  
+  note right
+    **RNF2**: Datos seguros
+    Cifrado en tránsito (HTTPS)
+    Validación backend
+  end note
+  
+  :Retornar 201 Created
+  + pedido_id;
+  
+  |#E3F2FD|Sistema Frontend|
+  :Limpiar carrito local;
+  :Mostrar confirmación exitosa;
+  :Renderizar número pedido;
+  
+  |#E8F5E9|Cliente|
+  :Ver confirmación del pedido;
+  
+else (No)
+  if (¿Volver al catálogo?) then (Sí)
+    :Continuar comprando;
+    detach
+  else (No)
+    |#E3F2FD|Sistema Frontend|
+    :Ejecutar DELETE /api/carrito/limpiar;
+    
+    |#FFF3E0|API Backend|
+    :Limpiar carrito temporal;
+    
+    |#E8F5E9|Cliente|
+    :Cancelar operación;
+  endif
+endif
+
+stop
+
+legend right
+  |= Color |= Responsable |
+  |<#E8F5E9>| Cliente |
+  |<#E3F2FD>| Sistema Frontend |
+  |<#FFF3E0>| API Backend |
+  
+  **Tecnologías:**
+  - Frontend: HTML5, CSS3, JavaScript
+  - Backend: Go (Golang) + Gin Framework
+  - Base de datos: PostgreSQL
+  - Protocolo: REST API (JSON)
+  - Seguridad: HTTPS, validaciones
+endlegend
+
+@enduml

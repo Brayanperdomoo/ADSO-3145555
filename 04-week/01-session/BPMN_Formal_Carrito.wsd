@@ -1,0 +1,161 @@
+@startuml BPMN_Formal_Carrito_Cafetin
+
+title BPMN Formal - Proceso de Pedidos Cafetín SENA
+
+|#FFE0B2|Cliente|
+start
+:Ingresar al sistema
+de pedidos del cafetín;
+
+|#B3E5FC|Sistema de Pedidos|
+:Presentar catálogo
+de productos disponibles;
+
+note right
+  Solo se muestran productos
+  con stock disponible
+end note
+
+|#FFE0B2|Cliente|
+:Explorar catálogo;
+:Seleccionar producto deseado;
+:Indicar cantidad a solicitar;
+
+|#B3E5FC|Sistema de Pedidos|
+if (¿Cantidad válida?) then (Sí)
+  :Agregar producto
+  al carrito de compras;
+  
+  :Calcular subtotal
+  del producto;
+  
+else (No)
+  :Informar cantidad inválida;
+  |#FFE0B2|Cliente|
+  :Corregir cantidad;
+  stop
+endif
+
+|#B3E5FC|Sistema de Pedidos|
+:Actualizar total del carrito;
+
+|#FFE0B2|Cliente|
+if (¿Requiere ajustes?) then (Sí)
+  
+  if (¿Modificar cantidad?) then (Sí)
+    :Cambiar cantidad
+    de producto en carrito;
+    
+    |#B3E5FC|Sistema de Pedidos|
+    :Recalcular total del carrito;
+  endif
+  
+  |#FFE0B2|Cliente|
+  if (¿Eliminar producto?) then (Sí)
+    :Remover producto del carrito;
+    
+    |#B3E5FC|Sistema de Pedidos|
+    :Recalcular total del carrito;
+  endif
+endif
+
+|#FFE0B2|Cliente|
+if (¿Desea agregar más productos?) then (Sí)
+  :Continuar agregando;
+  detach
+endif
+
+:Revisar resumen completo
+del pedido;
+
+|#B3E5FC|Sistema de Pedidos|
+:Mostrar detalle del pedido:
+- Productos seleccionados
+- Cantidades
+- Precios
+- Total a pagar;
+
+|#FFE0B2|Cliente|
+if (¿Confirmar el pedido?) then (Sí)
+  
+  |#B3E5FC|Sistema de Pedidos|
+  :Registrar pedido confirmado;
+  
+  :Generar número
+  de pedido único;
+  
+  :Actualizar inventario
+  de productos;
+  
+  :Guardar información
+  del pedido;
+  
+  |#C8E6C9|Personal del Cafetín|
+  :Recibir notificación
+  de nuevo pedido;
+  
+  note right
+    El pedido queda registrado
+    para ser preparado
+  end note
+  
+  |#B3E5FC|Sistema de Pedidos|
+  :Mostrar confirmación
+  con número de pedido;
+  
+  |#FFE0B2|Cliente|
+  :Recibir confirmación
+  del pedido;
+  
+  :Guardar número de pedido
+  para retiro;
+  
+  |#C8E6C9|Personal del Cafetín|
+  :Preparar pedido;
+  
+  :Marcar pedido como listo;
+  
+  |#FFE0B2|Cliente|
+  :Retirar pedido en el cafetín
+  presentando número;
+  
+  |#C8E6C9|Personal del Cafetín|
+  :Entregar pedido al cliente;
+  
+  :Marcar pedido como entregado;
+  
+else (No)
+  |#FFE0B2|Cliente|
+  if (¿Continuar comprando?) then (Sí)
+    :Volver al catálogo;
+    detach
+  else (No)
+    |#B3E5FC|Sistema de Pedidos|
+    :Cancelar pedido;
+    :Limpiar carrito de compras;
+    
+    |#FFE0B2|Cliente|
+    :Salir del sistema;
+  endif
+endif
+
+stop
+
+legend right
+  |= Símbolo |= Significado |
+  |<#FFE0B2>| Actividades del Cliente |
+  |<#B3E5FC>| Procesos del Sistema |
+  |<#C8E6C9>| Actividades del Personal |
+  
+  **Reglas del Negocio:**
+  • Cantidad mínima por producto: 1 unidad
+  • Solo productos con stock disponible
+  • Pedido requiere confirmación explícita
+  
+  **Objetivos del Proceso:**
+  • Agilizar la toma de pedidos
+  • Reducir errores en los pedidos
+  • Mejorar organización del cafetín
+endlegend
+
+@enduml

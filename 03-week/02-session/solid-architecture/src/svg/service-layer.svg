@@ -1,0 +1,45 @@
+<svg viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrowhead2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#ec4899"/>
+        </marker>
+        <marker id="arrowhead3" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+        </marker>
+    </defs>
+
+    <!-- Service Box Central -->
+    <rect x="250" y="100" width="300" height="120" rx="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
+    <text x="400" y="140" text-anchor="middle" fill="#92400e" font-weight="700" font-size="18">Service Layer</text>
+    <text x="400" y="165" text-anchor="middle" fill="#a16207" font-size="12">SecurityService | BillService</text>
+    <text x="400" y="185" text-anchor="middle" fill="#a16207" font-size="12">InventoryService</text>
+
+    <!-- IService (arriba izq) -->
+    <rect x="50" y="30" width="150" height="60" rx="8" fill="#06b6d4"/>
+    <text x="125" y="55" text-anchor="middle" fill="white" font-weight="600" font-size="12">IService</text>
+    <text x="125" y="72" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">implements</text>
+    <path d="M 200 60 L 250 120" stroke="#06b6d4" stroke-width="2" stroke-dasharray="5,3"/>
+
+    <!-- IRepository (arriba der) -->
+    <rect x="600" y="30" width="150" height="60" rx="8" fill="#10b981"/>
+    <text x="675" y="55" text-anchor="middle" fill="white" font-weight="600" font-size="12">IRepository</text>
+    <text x="675" y="72" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">depends on</text>
+    <path d="M 600 60 L 550 120" stroke="#10b981" stroke-width="2" stroke-dasharray="5,3"/>
+
+    <!-- DTO (izq) -->
+    <rect x="50" y="130" width="150" height="60" rx="8" fill="#ec4899"/>
+    <text x="125" y="155" text-anchor="middle" fill="white" font-weight="600" font-size="12">DTO</text>
+    <text x="125" y="172" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">input/output</text>
+    <path d="M 200 160 L 250 160" stroke="#ec4899" stroke-width="2" marker-end="url(#arrowhead2)"/>
+
+    <!-- Entity (der) -->
+    <rect x="600" y="130" width="150" height="60" rx="8" fill="#2563eb"/>
+    <text x="675" y="155" text-anchor="middle" fill="white" font-weight="600" font-size="12">Entity</text>
+    <text x="675" y="172" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">domain model</text>
+    <path d="M 550 160 L 600 160" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowhead3)"/>
+
+    <!-- Responsabilidades -->
+    <rect x="150" y="250" width="500" height="55" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="400" y="270" text-anchor="middle" fill="#334155" font-weight="600" font-size="11">Responsabilidades del Service</text>
+    <text x="400" y="290" text-anchor="middle" fill="#64748b" font-size="10">Validaciones • Cálculos • Flujos de negocio • Transformación Entity↔DTO • Manejo de errores</text>
+</svg>

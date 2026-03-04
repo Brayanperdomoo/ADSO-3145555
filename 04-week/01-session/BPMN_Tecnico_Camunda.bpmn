@@ -1,0 +1,593 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                   xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                   id="Definitions_BPMN_Tecnico_Cafetin"
+                   targetNamespace="http://bpmn.io/schema/bpmn">
+  
+  <!-- PROCESO TÉCNICO: Sistema de Carrito de Compras Cafetín SENA -->
+  
+  <bpmn:collaboration id="Collaboration_Cafetin_Tecnico">
+    <bpmn:participant id="Participant_Cliente" name="Cliente" processRef="Process_Cliente" />
+    <bpmn:participant id="Participant_Frontend" name="Sistema Frontend (Web App)" processRef="Process_Frontend" />
+    <bpmn:participant id="Participant_Backend" name="API Backend (Go + PostgreSQL)" processRef="Process_Backend" />
+    
+    <!-- Message Flows -->
+    <bpmn:messageFlow id="Flow_ClienteToFrontend_1" sourceRef="Task_Cliente_Acceder" targetRef="Event_Frontend_Start" />
+    <bpmn:messageFlow id="Flow_FrontendToBackend_1" sourceRef="Task_Frontend_GET_Productos" targetRef="Task_Backend_Consultar_Productos" />
+    <bpmn:messageFlow id="Flow_BackendToFrontend_1" sourceRef="Task_Backend_Retornar_JSON" targetRef="Task_Frontend_Renderizar_Catalogo" />
+    <bpmn:messageFlow id="Flow_ClienteToFrontend_2" sourceRef="Task_Cliente_Seleccionar" targetRef="Task_Frontend_Validar_Cantidad" />
+    <bpmn:messageFlow id="Flow_FrontendToBackend_2" sourceRef="Task_Frontend_POST_Carrito" targetRef="Task_Backend_Validar_Disponibilidad" />
+    <bpmn:messageFlow id="Flow_BackendToFrontend_2" sourceRef="Gateway_Backend_Disponible" targetRef="Gateway_Frontend_Respuesta" />
+    <bpmn:messageFlow id="Flow_ClienteToFrontend_3" sourceRef="Gateway_Cliente_Modificar" targetRef="Task_Frontend_PUT_Carrito" />
+    <bpmn:messageFlow id="Flow_FrontendToBackend_3" sourceRef="Task_Frontend_PUT_Carrito" targetRef="Task_Backend_Actualizar_Cantidad" />
+    <bpmn:messageFlow id="Flow_ClienteToFrontend_4" sourceRef="Gateway_Cliente_Eliminar" targetRef="Task_Frontend_DELETE_Carrito" />
+    <bpmn:messageFlow id="Flow_FrontendToBackend_4" sourceRef="Task_Frontend_DELETE_Carrito" targetRef="Task_Backend_Eliminar_Registro" />
+    <bpmn:messageFlow id="Flow_ClienteToFrontend_5" sourceRef="Gateway_Cliente_Confirmar" targetRef="Task_Frontend_POST_Pedido" />
+    <bpmn:messageFlow id="Flow_FrontendToBackend_5" sourceRef="Task_Frontend_POST_Pedido" targetRef="Task_Backend_Transaccion" />
+    <bpmn:messageFlow id="Flow_BackendToFrontend_3" sourceRef="Task_Backend_Commit" targetRef="Task_Frontend_Mostrar_Confirmacion" />
+  </bpmn:collaboration>
+  
+  <!-- PROCESS: Cliente -->
+  <bpmn:process id="Process_Cliente" name="Proceso Cliente" isExecutable="false">
+    <bpmn:startEvent id="Event_Cliente_Start" name="Inicio">
+      <bpmn:outgoing>Flow_Cliente_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:userTask id="Task_Cliente_Acceder" name="Acceder a la aplicación web">
+      <bpmn:incoming>Flow_Cliente_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_2</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:userTask id="Task_Cliente_Seleccionar" name="Seleccionar producto&#10;e ingresar cantidad">
+      <bpmn:incoming>Flow_Cliente_2</bpmn:incoming>
+      <bpmn:incoming>Flow_Cliente_Agregar_Mas</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutput_Producto">
+        <bpmn:targetRef>DataObject_Producto_Seleccionado</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    
+    <bpmn:dataObjectReference id="DataObject_Producto_Seleccionado" name="Producto + Cantidad" />
+    
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Modificar" name="¿Modificar&#10;cantidad?">
+      <bpmn:incoming>Flow_Cliente_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_Modificar_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cliente_Modificar_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:task id="Task_Cliente_Esperar_Modificacion" name="Esperar actualización">
+      <bpmn:incoming>Flow_Cliente_Modificar_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_4</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Eliminar" name="¿Eliminar&#10;producto?">
+      <bpmn:incoming>Flow_Cliente_Modificar_No</bpmn:incoming>
+      <bpmn:incoming>Flow_Cliente_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_Eliminar_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cliente_Eliminar_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:task id="Task_Cliente_Esperar_Eliminacion" name="Esperar eliminación">
+      <bpmn:incoming>Flow_Cliente_Eliminar_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_5</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Agregar_Mas" name="¿Agregar más&#10;productos?">
+      <bpmn:incoming>Flow_Cliente_Eliminar_No</bpmn:incoming>
+      <bpmn:incoming>Flow_Cliente_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_Agregar_Mas</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cliente_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:userTask id="Task_Cliente_Revisar" name="Revisar resumen&#10;del pedido">
+      <bpmn:incoming>Flow_Cliente_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_7</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Confirmar" name="¿Confirmar&#10;pedido?" camunda:asyncBefore="true">
+      <bpmn:incoming>Flow_Cliente_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_Confirmar_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cliente_Confirmar_No</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="businessRule" value="RN3: Confirmación obligatoria" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:userTask id="Task_Cliente_Ver_Confirmacion" name="Ver confirmación&#10;del pedido">
+      <bpmn:incoming>Flow_Cliente_Confirmar_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_8</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:endEvent id="Event_Cliente_End_Success" name="Pedido confirmado">
+      <bpmn:incoming>Flow_Cliente_8</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:exclusiveGateway id="Gateway_Cliente_Cancelar" name="¿Volver al&#10;catálogo?">
+      <bpmn:incoming>Flow_Cliente_Confirmar_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cliente_Volver</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cliente_Cancelar</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:endEvent id="Event_Cliente_End_Cancel" name="Operación cancelada">
+      <bpmn:incoming>Flow_Cliente_Cancelar</bpmn:incoming>
+      <bpmn:terminateEventDefinition />
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows Cliente -->
+    <bpmn:sequenceFlow id="Flow_Cliente_1" sourceRef="Event_Cliente_Start" targetRef="Task_Cliente_Acceder" />
+    <bpmn:sequenceFlow id="Flow_Cliente_2" sourceRef="Task_Cliente_Acceder" targetRef="Task_Cliente_Seleccionar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_3" sourceRef="Task_Cliente_Seleccionar" targetRef="Gateway_Cliente_Modificar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Modificar_Si" name="Sí" sourceRef="Gateway_Cliente_Modificar" targetRef="Task_Cliente_Esperar_Modificacion" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Modificar_No" name="No" sourceRef="Gateway_Cliente_Modificar" targetRef="Gateway_Cliente_Eliminar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_4" sourceRef="Task_Cliente_Esperar_Modificacion" targetRef="Gateway_Cliente_Eliminar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Eliminar_Si" name="Sí" sourceRef="Gateway_Cliente_Eliminar" targetRef="Task_Cliente_Esperar_Eliminacion" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Eliminar_No" name="No" sourceRef="Gateway_Cliente_Eliminar" targetRef="Gateway_Cliente_Agregar_Mas" />
+    <bpmn:sequenceFlow id="Flow_Cliente_5" sourceRef="Task_Cliente_Esperar_Eliminacion" targetRef="Gateway_Cliente_Agregar_Mas" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Agregar_Mas" name="Sí" sourceRef="Gateway_Cliente_Agregar_Mas" targetRef="Task_Cliente_Seleccionar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_6" name="No" sourceRef="Gateway_Cliente_Agregar_Mas" targetRef="Task_Cliente_Revisar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_7" sourceRef="Task_Cliente_Revisar" targetRef="Gateway_Cliente_Confirmar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Confirmar_Si" name="Sí" sourceRef="Gateway_Cliente_Confirmar" targetRef="Task_Cliente_Ver_Confirmacion" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Confirmar_No" name="No" sourceRef="Gateway_Cliente_Confirmar" targetRef="Gateway_Cliente_Cancelar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_8" sourceRef="Task_Cliente_Ver_Confirmacion" targetRef="Event_Cliente_End_Success" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Volver" name="Sí" sourceRef="Gateway_Cliente_Cancelar" targetRef="Task_Cliente_Seleccionar" />
+    <bpmn:sequenceFlow id="Flow_Cliente_Cancelar" name="No" sourceRef="Gateway_Cliente_Cancelar" targetRef="Event_Cliente_End_Cancel" />
+  </bpmn:process>
+  
+  <!-- PROCESS: Frontend -->
+  <bpmn:process id="Process_Frontend" name="Proceso Frontend" isExecutable="true">
+    <bpmn:startEvent id="Event_Frontend_Start" name="Solicitud recibida">
+      <bpmn:outgoing>Flow_Frontend_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    
+    <bpmn:serviceTask id="Task_Frontend_Cargar_UI" name="Cargar interfaz&#10;principal" camunda:type="external" camunda:topic="loadUI">
+      <bpmn:incoming>Flow_Frontend_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_2</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="technology" value="HTML5, CSS3, JavaScript" />
+          <camunda:property name="requirement" value="RNF1: Interfaz intuitiva" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_GET_Productos" name="Ejecutar&#10;GET /api/productos" camunda:type="external" camunda:topic="getProducts">
+      <bpmn:incoming>Flow_Frontend_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_3</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="method" value="GET" />
+          <camunda:property name="endpoint" value="/api/productos" />
+          <camunda:property name="requirement" value="RF1: Ver productos" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_Renderizar_Catalogo" name="Renderizar&#10;catálogo de productos" camunda:type="external" camunda:topic="renderCatalog">
+      <bpmn:incoming>Flow_Frontend_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutput_Catalogo">
+        <bpmn:targetRef>DataStore_SessionStorage</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    
+    <bpmn:dataStoreReference id="DataStore_SessionStorage" name="sessionStorage" />
+    
+    <bpmn:businessRuleTask id="Task_Frontend_Validar_Cantidad" name="Validar&#10;cantidad ≥ 1" camunda:decisionRef="validarCantidadMinima">
+      <bpmn:incoming>Flow_Frontend_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_5</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="businessRule" value="RN2: Cantidad mínima = 1" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+    
+    <bpmn:exclusiveGateway id="Gateway_Frontend_Cantidad_Valida" name="¿Cantidad&#10;válida?">
+      <bpmn:incoming>Flow_Frontend_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_Valida_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Frontend_Valida_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:serviceTask id="Task_Frontend_Agregar_Local" name="Agregar a carrito local&#10;(sessionStorage)" camunda:type="external" camunda:topic="addToLocalCart">
+      <bpmn:incoming>Flow_Frontend_Valida_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_6</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="requirement" value="RF2: Agregar al carrito" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_POST_Carrito" name="Ejecutar&#10;POST /api/carrito" camunda:type="external" camunda:topic="postCart">
+      <bpmn:incoming>Flow_Frontend_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_7</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="method" value="POST" />
+          <camunda:property name="endpoint" value="/api/carrito" />
+          <camunda:property name="payload" value="{session_id, producto_id, cantidad}" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:exclusiveGateway id="Gateway_Frontend_Respuesta" name="Respuesta&#10;Backend">
+      <bpmn:incoming>Flow_Frontend_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_200_OK</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Frontend_409_Conflict</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:serviceTask id="Task_Frontend_Actualizar_Estado" name="Actualizar estado&#10;del carrito" camunda:type="external" camunda:topic="updateCartState">
+      <bpmn:incoming>Flow_Frontend_200_OK</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:scriptTask id="Task_Frontend_Calcular_Total" name="Recalcular totales&#10;total = Σ(cant × precio)" scriptFormat="javascript">
+      <bpmn:incoming>Flow_Frontend_8</bpmn:incoming>
+      <bpmn:incoming>Flow_Frontend_PUT_Response</bpmn:incoming>
+      <bpmn:incoming>Flow_Frontend_DELETE_Response</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_9</bpmn:outgoing>
+      <bpmn:script><![CDATA[
+        var total = 0;
+        for (var i = 0; i < carrito.items.length; i++) {
+          total += carrito.items[i].cantidad * carrito.items[i].precio;
+        }
+        execution.setVariable("total", total);
+      ]]></bpmn:script>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="requirement" value="RF4: Calcular total" />
+          <camunda:property name="performance" value="RNF3: Tiempo < 3 segundos" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:scriptTask>
+    
+    <bpmn:userTask id="Task_Frontend_Mostrar_Error_Validacion" name="Mostrar error:&#10;Cantidad mínima es 1">
+      <bpmn:incoming>Flow_Frontend_Valida_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_Error_1</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:userTask id="Task_Frontend_Mostrar_Error_Disponibilidad" name="Mostrar error:&#10;Producto no disponible">
+      <bpmn:incoming>Flow_Frontend_409_Conflict</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_Error_2</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:endEvent id="Event_Frontend_Error_End_1" name="Error validación">
+      <bpmn:incoming>Flow_Frontend_Error_1</bpmn:incoming>
+      <bpmn:errorEventDefinition errorRef="Error_Validacion" />
+    </bpmn:endEvent>
+    
+    <bpmn:endEvent id="Event_Frontend_Error_End_2" name="Error disponibilidad">
+      <bpmn:incoming>Flow_Frontend_Error_2</bpmn:incoming>
+      <bpmn:errorEventDefinition errorRef="Error_Disponibilidad" />
+    </bpmn:endEvent>
+    
+    <bpmn:serviceTask id="Task_Frontend_PUT_Carrito" name="Ejecutar&#10;PUT /api/carrito/{id}" camunda:type="external" camunda:topic="putCart">
+      <bpmn:incoming>Flow_Frontend_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_PUT_Response</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="method" value="PUT" />
+          <camunda:property name="endpoint" value="/api/carrito/{id}" />
+          <camunda:property name="requirement" value="RF3: Modificar cantidad" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_DELETE_Carrito" name="Ejecutar&#10;DELETE /api/carrito/{id}" camunda:type="external" camunda:topic="deleteCart">
+      <bpmn:incoming>Flow_Frontend_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_DELETE_Response</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="method" value="DELETE" />
+          <camunda:property name="endpoint" value="/api/carrito/{id}" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:userTask id="Task_Frontend_Mostrar_Modal" name="Mostrar modal&#10;de confirmación" camunda:formKey="formConfirmacion">
+      <bpmn:incoming>Flow_Frontend_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_12</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="requirement" value="RF5: Ver pedido" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_POST_Pedido" name="Ejecutar&#10;POST /api/pedidos" camunda:type="external" camunda:topic="postOrder">
+      <bpmn:incoming>Flow_Frontend_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_13</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="method" value="POST" />
+          <camunda:property name="endpoint" value="/api/pedidos" />
+          <camunda:property name="security" value="RNF2: HTTPS + validaciones" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_Limpiar_Carrito" name="Limpiar carrito local" camunda:type="external" camunda:topic="clearLocalCart">
+      <bpmn:incoming>Flow_Frontend_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Frontend_Mostrar_Confirmacion" name="Mostrar confirmación&#10;exitosa con N° pedido" camunda:type="external" camunda:topic="showSuccess">
+      <bpmn:incoming>Flow_Frontend_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_Frontend_15</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="Event_Frontend_End_Success" name="Proceso completado">
+      <bpmn:incoming>Flow_Frontend_15</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows Frontend -->
+    <bpmn:sequenceFlow id="Flow_Frontend_1" sourceRef="Event_Frontend_Start" targetRef="Task_Frontend_Cargar_UI" />
+    <bpmn:sequenceFlow id="Flow_Frontend_2" sourceRef="Task_Frontend_Cargar_UI" targetRef="Task_Frontend_GET_Productos" />
+    <bpmn:sequenceFlow id="Flow_Frontend_3" sourceRef="Task_Frontend_GET_Productos" targetRef="Task_Frontend_Renderizar_Catalogo" />
+    <bpmn:sequenceFlow id="Flow_Frontend_4" sourceRef="Task_Frontend_Renderizar_Catalogo" targetRef="Task_Frontend_Validar_Cantidad" />
+    <bpmn:sequenceFlow id="Flow_Frontend_5" sourceRef="Task_Frontend_Validar_Cantidad" targetRef="Gateway_Frontend_Cantidad_Valida" />
+    <bpmn:sequenceFlow id="Flow_Frontend_Valida_Si" name="Sí (≥1)" sourceRef="Gateway_Frontend_Cantidad_Valida" targetRef="Task_Frontend_Agregar_Local" />
+    <bpmn:sequenceFlow id="Flow_Frontend_Valida_No" name="No (<1)" sourceRef="Gateway_Frontend_Cantidad_Valida" targetRef="Task_Frontend_Mostrar_Error_Validacion" />
+    <bpmn:sequenceFlow id="Flow_Frontend_6" sourceRef="Task_Frontend_Agregar_Local" targetRef="Task_Frontend_POST_Carrito" />
+    <bpmn:sequenceFlow id="Flow_Frontend_7" sourceRef="Task_Frontend_POST_Carrito" targetRef="Gateway_Frontend_Respuesta" />
+    <bpmn:sequenceFlow id="Flow_Frontend_200_OK" name="200 OK" sourceRef="Gateway_Frontend_Respuesta" targetRef="Task_Frontend_Actualizar_Estado" />
+    <bpmn:sequenceFlow id="Flow_Frontend_409_Conflict" name="409 Conflict" sourceRef="Gateway_Frontend_Respuesta" targetRef="Task_Frontend_Mostrar_Error_Disponibilidad" />
+    <bpmn:sequenceFlow id="Flow_Frontend_8" sourceRef="Task_Frontend_Actualizar_Estado" targetRef="Task_Frontend_Calcular_Total" />
+    <bpmn:sequenceFlow id="Flow_Frontend_Error_1" sourceRef="Task_Frontend_Mostrar_Error_Validacion" targetRef="Event_Frontend_Error_End_1" />
+    <bpmn:sequenceFlow id="Flow_Frontend_Error_2" sourceRef="Task_Frontend_Mostrar_Error_Disponibilidad" targetRef="Event_Frontend_Error_End_2" />
+    <bpmn:sequenceFlow id="Flow_Frontend_9" sourceRef="Task_Frontend_Calcular_Total" targetRef="Task_Frontend_PUT_Carrito" />
+    <bpmn:sequenceFlow id="Flow_Frontend_PUT_Response" sourceRef="Task_Frontend_PUT_Carrito" targetRef="Task_Frontend_Calcular_Total" />
+    <bpmn:sequenceFlow id="Flow_Frontend_10" sourceRef="Task_Frontend_Calcular_Total" targetRef="Task_Frontend_DELETE_Carrito" />
+    <bpmn:sequenceFlow id="Flow_Frontend_DELETE_Response" sourceRef="Task_Frontend_DELETE_Carrito" targetRef="Task_Frontend_Calcular_Total" />
+    <bpmn:sequenceFlow id="Flow_Frontend_11" sourceRef="Task_Frontend_Calcular_Total" targetRef="Task_Frontend_Mostrar_Modal" />
+    <bpmn:sequenceFlow id="Flow_Frontend_12" sourceRef="Task_Frontend_Mostrar_Modal" targetRef="Task_Frontend_POST_Pedido" />
+    <bpmn:sequenceFlow id="Flow_Frontend_13" sourceRef="Task_Frontend_POST_Pedido" targetRef="Task_Frontend_Limpiar_Carrito" />
+    <bpmn:sequenceFlow id="Flow_Frontend_14" sourceRef="Task_Frontend_Limpiar_Carrito" targetRef="Task_Frontend_Mostrar_Confirmacion" />
+    <bpmn:sequenceFlow id="Flow_Frontend_15" sourceRef="Task_Frontend_Mostrar_Confirmacion" targetRef="Event_Frontend_End_Success" />
+  </bpmn:process>
+  
+  <!-- PROCESS: Backend -->
+  <bpmn:process id="Process_Backend" name="Proceso Backend API" isExecutable="true">
+    <bpmn:startEvent id="Event_Backend_Start_1" name="GET /api/productos">
+      <bpmn:outgoing>Flow_Backend_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    
+    <bpmn:serviceTask id="Task_Backend_Consultar_Productos" name="Consultar BD&#10;productos disponibles" camunda:type="external" camunda:topic="queryProducts">
+      <bpmn:incoming>Flow_Backend_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_2</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DataInput_DB">
+        <bpmn:sourceRef>DataStore_PostgreSQL</bpmn:sourceRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="SELECT * FROM productos WHERE disponible = true AND stock > 0" />
+          <camunda:property name="businessRule" value="RN1: Solo productos disponibles" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:dataStoreReference id="DataStore_PostgreSQL" name="PostgreSQL DB" />
+    
+    <bpmn:serviceTask id="Task_Backend_Retornar_JSON" name="Retornar JSON&#10;productos[]" camunda:type="external" camunda:topic="returnJSON">
+      <bpmn:incoming>Flow_Backend_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="Event_Backend_End_1" name="Respuesta enviada">
+      <bpmn:incoming>Flow_Backend_3</bpmn:incoming>
+      <bpmn:messageEventDefinition />
+    </bpmn:endEvent>
+    
+    <bpmn:startEvent id="Event_Backend_Start_2" name="POST /api/carrito">
+      <bpmn:outgoing>Flow_Backend_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    
+    <bpmn:businessRuleTask id="Task_Backend_Validar_Disponibilidad" name="Validar disponibilidad&#10;del producto" camunda:decisionRef="validarDisponibilidad">
+      <bpmn:incoming>Flow_Backend_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_5</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    
+    <bpmn:exclusiveGateway id="Gateway_Backend_Disponible" name="¿Producto&#10;disponible?">
+      <bpmn:incoming>Flow_Backend_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_Disponible_Si</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Backend_Disponible_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:serviceTask id="Task_Backend_Insert_Carrito" name="INSERT INTO&#10;carrito_temporal" camunda:type="external" camunda:topic="insertCart">
+      <bpmn:incoming>Flow_Backend_Disponible_Si</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutput_Carrito">
+        <bpmn:targetRef>DataStore_PostgreSQL</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="INSERT INTO carrito_temporal (session_id, producto_id, cantidad, precio_unitario) VALUES (?, ?, ?, ?)" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="Event_Backend_End_2" name="200 OK">
+      <bpmn:incoming>Flow_Backend_6</bpmn:incoming>
+      <bpmn:messageEventDefinition />
+    </bpmn:endEvent>
+    
+    <bpmn:endEvent id="Event_Backend_End_Error" name="409 Conflict">
+      <bpmn:incoming>Flow_Backend_Disponible_No</bpmn:incoming>
+      <bpmn:errorEventDefinition errorRef="Error_Disponibilidad" />
+    </bpmn:endEvent>
+    
+    <bpmn:startEvent id="Event_Backend_Start_3" name="PUT /api/carrito/{id}">
+      <bpmn:outgoing>Flow_Backend_7</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    
+    <bpmn:serviceTask id="Task_Backend_Actualizar_Cantidad" name="UPDATE&#10;carrito_temporal" camunda:type="external" camunda:topic="updateCart">
+      <bpmn:incoming>Flow_Backend_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_8</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="UPDATE carrito_temporal SET cantidad = ? WHERE id = ?" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="Event_Backend_End_3" name="200 OK">
+      <bpmn:incoming>Flow_Backend_8</bpmn:incoming>
+      <bpmn:messageEventDefinition />
+    </bpmn:endEvent>
+    
+    <bpmn:startEvent id="Event_Backend_Start_4" name="DELETE /api/carrito/{id}">
+      <bpmn:outgoing>Flow_Backend_9</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    
+    <bpmn:serviceTask id="Task_Backend_Eliminar_Registro" name="DELETE FROM&#10;carrito_temporal" camunda:type="external" camunda:topic="deleteCartItem">
+      <bpmn:incoming>Flow_Backend_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_10</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="DELETE FROM carrito_temporal WHERE id = ?" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="Event_Backend_End_4" name="204 No Content">
+      <bpmn:incoming>Flow_Backend_10</bpmn:incoming>
+      <bpmn:messageEventDefinition />
+    </bpmn:endEvent>
+    
+    <bpmn:startEvent id="Event_Backend_Start_5" name="POST /api/pedidos">
+      <bpmn:outgoing>Flow_Backend_11</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Backend_Transaccion" name="BEGIN TRANSACTION">
+      <bpmn:incoming>Flow_Backend_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_12</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:parallelGateway id="Gateway_Backend_Parallel_Start" name="Operaciones paralelas">
+      <bpmn:incoming>Flow_Backend_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_13</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Backend_14</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Backend_15</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:serviceTask id="Task_Backend_Insert_Pedido" name="INSERT INTO pedidos" camunda:type="external" camunda:topic="insertOrder">
+      <bpmn:incoming>Flow_Backend_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_16</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="INSERT INTO pedidos (fecha, total, estado) VALUES (NOW(), ?, 'CONFIRMADO')" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Backend_Insert_Detalle" name="INSERT INTO&#10;detalle_pedido" camunda:type="external" camunda:topic="insertOrderDetail">
+      <bpmn:incoming>Flow_Backend_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_17</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="INSERT INTO detalle_pedido SELECT ?, producto_id, cantidad, precio_unitario FROM carrito_temporal WHERE session_id = ?" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_Backend_Update_Stock" name="UPDATE stock&#10;productos" camunda:type="external" camunda:topic="updateStock">
+      <bpmn:incoming>Flow_Backend_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_18</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="UPDATE productos SET stock = stock - ? WHERE id IN (SELECT producto_id FROM carrito_temporal)" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:parallelGateway id="Gateway_Backend_Parallel_End" name="Sincronización">
+      <bpmn:incoming>Flow_Backend_16</bpmn:incoming>
+      <bpmn:incoming>Flow_Backend_17</bpmn:incoming>
+      <bpmn:incoming>Flow_Backend_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_19</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:serviceTask id="Task_Backend_Limpiar_Carrito" name="DELETE FROM&#10;carrito_temporal" camunda:type="external" camunda:topic="clearCart">
+      <bpmn:incoming>Flow_Backend_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_20</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="query" value="DELETE FROM carrito_temporal WHERE session_id = ?" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    
+    <bpmn:task id="Task_Backend_Commit" name="COMMIT">
+      <bpmn:incoming>Flow_Backend_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_21</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="security" value="RNF2: Datos seguros, transacción ACID" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+    </bpmn:task>
+    
+    <bpmn:endEvent id="Event_Backend_End_5" name="201 Created">
+      <bpmn:incoming>Flow_Backend_21</bpmn:incoming>
+      <bpmn:messageEventDefinition />
+    </bpmn:endEvent>
+    
+    <bpmn:boundaryEvent id="Event_Backend_Error_Transaction" name="Error transacción" attachedToRef="Task_Backend_Transaccion">
+      <bpmn:outgoing>Flow_Backend_Error</bpmn:outgoing>
+      <bpmn:errorEventDefinition />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:task id="Task_Backend_Rollback" name="ROLLBACK">
+      <bpmn:incoming>Flow_Backend_Error</bpmn:incoming>
+      <bpmn:outgoing>Flow_Backend_Error_End</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:endEvent id="Event_Backend_End_Error_Transaction" name="500 Internal Error">
+      <bpmn:incoming>Flow_Backend_Error_End</bpmn:incoming>
+      <bpmn:errorEventDefinition />
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows Backend -->
+    <bpmn:sequenceFlow id="Flow_Backend_1" sourceRef="Event_Backend_Start_1" targetRef="Task_Backend_Consultar_Productos" />
+    <bpmn:sequenceFlow id="Flow_Backend_2" sourceRef="Task_Backend_Consultar_Productos" targetRef="Task_Backend_Retornar_JSON" />
+    <bpmn:sequenceFlow id="Flow_Backend_3" sourceRef="Task_Backend_Retornar_JSON" targetRef="Event_Backend_End_1" />
+    <bpmn:sequenceFlow id="Flow_Backend_4" sourceRef="Event_Backend_Start_2" targetRef="Task_Backend_Validar_Disponibilidad" />
+    <bpmn:sequenceFlow id="Flow_Backend_5" sourceRef="Task_Backend_Validar_Disponibilidad" targetRef="Gateway_Backend_Disponible" />
+    <bpmn:sequenceFlow id="Flow_Backend_Disponible_Si" name="Sí" sourceRef="Gateway_Backend_Disponible" targetRef="Task_Backend_Insert_Carrito" />
+    <bpmn:sequenceFlow id="Flow_Backend_Disponible_No" name="No" sourceRef="Gateway_Backend_Disponible" targetRef="Event_Backend_End_Error" />
+    <bpmn:sequenceFlow id="Flow_Backend_6" sourceRef="Task_Backend_Insert_Carrito" targetRef="Event_Backend_End_2" />
+    <bpmn:sequenceFlow id="Flow_Backend_7" sourceRef="Event_Backend_Start_3" targetRef="Task_Backend_Actualizar_Cantidad" />
+    <bpmn:sequenceFlow id="Flow_Backend_8" sourceRef="Task_Backend_Actualizar_Cantidad" targetRef="Event_Backend_End_3" />
+    <bpmn:sequenceFlow id="Flow_Backend_9" sourceRef="Event_Backend_Start_4" targetRef="Task_Backend_Eliminar_Registro" />
+    <bpmn:sequenceFlow id="Flow_Backend_10" sourceRef="Task_Backend_Eliminar_Registro" targetRef="Event_Backend_End_4" />
+    <bpmn:sequenceFlow id="Flow_Backend_11" sourceRef="Event_Backend_Start_5" targetRef="Task_Backend_Transaccion" />
+    <bpmn:sequenceFlow id="Flow_Backend_12" sourceRef="Task_Backend_Transaccion" targetRef="Gateway_Backend_Parallel_Start" />
+    <bpmn:sequenceFlow id="Flow_Backend_13" sourceRef="Gateway_Backend_Parallel_Start" targetRef="Task_Backend_Insert_Pedido" />
+    <bpmn:sequenceFlow id="Flow_Backend_14" sourceRef="Gateway_Backend_Parallel_Start" targetRef="Task_Backend_Insert_Detalle" />
+    <bpmn:sequenceFlow id="Flow_Backend_15" sourceRef="Gateway_Backend_Parallel_Start" targetRef="Task_Backend_Update_Stock" />
+    <bpmn:sequenceFlow id="Flow_Backend_16" sourceRef="Task_Backend_Insert_Pedido" targetRef="Gateway_Backend_Parallel_End" />
+    <bpmn:sequenceFlow id="Flow_Backend_17" sourceRef="Task_Backend_Insert_Detalle" targetRef="Gateway_Backend_Parallel_End" />
+    <bpmn:sequenceFlow id="Flow_Backend_18" sourceRef="Task_Backend_Update_Stock" targetRef="Gateway_Backend_Parallel_End" />
+    <bpmn:sequenceFlow id="Flow_Backend_19" sourceRef="Gateway_Backend_Parallel_End" targetRef="Task_Backend_Limpiar_Carrito" />
+    <bpmn:sequenceFlow id="Flow_Backend_20" sourceRef="Task_Backend_Limpiar_Carrito" targetRef="Task_Backend_Commit" />
+    <bpmn:sequenceFlow id="Flow_Backend_21" sourceRef="Task_Backend_Commit" targetRef="Event_Backend_End_5" />
+    <bpmn:sequenceFlow id="Flow_Backend_Error" sourceRef="Event_Backend_Error_Transaction" targetRef="Task_Backend_Rollback" />
+    <bpmn:sequenceFlow id="Flow_Backend_Error_End" sourceRef="Task_Backend_Rollback" targetRef="Event_Backend_End_Error_Transaction" />
+  </bpmn:process>
+  
+  <!-- Error Definitions -->
+  <bpmn:error id="Error_Validacion" name="Error_Validacion_Cantidad" errorCode="ERR_CANTIDAD" />
+  <bpmn:error id="Error_Disponibilidad" name="Error_Producto_No_Disponible" errorCode="ERR_DISPONIBILIDAD" />
+  
+</bpmn:definitions>

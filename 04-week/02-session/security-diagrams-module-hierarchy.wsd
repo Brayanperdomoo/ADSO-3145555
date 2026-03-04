@@ -1,0 +1,62 @@
+@startuml Module Hierarchy
+package "Coffee Shop System" {
+  
+  [Security Module] as SEC
+  [Parameter Module] as PAR
+  [Inventory Module] as INV
+  [Sales Module] as SAL
+  [Billing Module] as BIL
+  
+  package "Security Views" {
+    [User Management] as SEC_USER
+    [Role Management] as SEC_ROLE
+    [Module Management] as SEC_MOD
+    [Permission Assignment] as SEC_PERM
+  }
+  
+  package "Inventory Views" {
+    [Product List] as INV_PROD
+    [Category Management] as INV_CAT
+    [Supplier Management] as INV_SUP
+    [Inventory Control] as INV_CTRL
+  }
+  
+  package "Sales Views" {
+    [Customer List] as SAL_CUST
+    [Order Management] as SAL_ORD
+    [Order Items] as SAL_ITEM
+  }
+  
+  SEC --> SEC_USER
+  SEC --> SEC_ROLE
+  SEC --> SEC_MOD
+  SEC --> SEC_PERM
+  
+  INV --> INV_PROD
+  INV --> INV_CAT
+  INV --> INV_SUP
+  INV --> INV_CTRL
+  
+  SAL --> SAL_CUST
+  SAL --> SAL_ORD
+  SAL --> SAL_ITEM
+  
+  note right of SEC
+    **Role: Administrator**
+    - Full access to all modules
+    
+    **Role: Manager**
+    - Inventory: Read, Write
+    - Sales: Read, Write
+    - Billing: Read
+    
+    **Role: Cashier**
+    - Sales: Read, Write
+    - Billing: Read, Write
+    
+    **Role: Warehouse Staff**
+    - Inventory: Read, Write
+  end note
+}
+
+@enduml
