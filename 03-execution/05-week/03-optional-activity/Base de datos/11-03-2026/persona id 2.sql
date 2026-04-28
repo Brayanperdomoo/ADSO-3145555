@@ -1,1 +1,0 @@
-SELECT obtener_nombre('28d24468-6f30-4d3d-ae6b-0e5add93eb1d');
